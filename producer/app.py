@@ -14,6 +14,26 @@ CA_PATH = os.getenv('KAFKA_CA_PATH', 'certs/ca.pem')
 CERT_PATH = os.getenv('KAFKA_CERT_PATH', 'certs/service.cert')
 KEY_PATH = os.getenv('KAFKA_KEY_PATH', 'certs/service.key')
 
+# --- SRE SECRET INJECTION: Recreate certs from ENV if missing ---
+def inject_certs():
+    if not os.path.exists('certs'):
+        os.makedirs('certs')
+    
+    envs = {
+        'KAFKA_CA_CERT': CA_PATH,
+        'KAFKA_SERVICE_CERT': CERT_PATH,
+        'KAFKA_SERVICE_KEY': KEY_PATH
+    }
+    
+    for env_name, file_path in envs.items():
+        content = os.getenv(env_name)
+        if content and not os.path.exists(file_path):
+            with open(file_path, 'w') as f:
+                f.write(content.strip())
+            print(f"📡 Injected {file_path} from ENV var {env_name}")
+
+inject_certs()
+
 conf = {'bootstrap.servers': BOOTSTRAP}
 
 # Add SSL if certificates exist
